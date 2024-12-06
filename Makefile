@@ -39,7 +39,7 @@ MLX_INC := -I$(MLX_PATH)
 ###############                  SOURCE FILES                     ##############
 ################################################################################
 
-SRCS := main.c
+SRCS := main.c draw.c utils.c parse_map.c
 
 # MLX_SRCS := $(wildcard minilbx_opengl_20191021/*.c)
 
@@ -95,12 +95,11 @@ all: $(LIBFT) $(NAME)
 
 FRAMEWORKS := -framework OpenGL -framework AppKit
 
-# Rule to build the program
 $(NAME): $(COMMON_OBJS)
 	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_LIB) $(FRAMEWORKS) -o $(NAME)
 
-# $(NAME): $(OBJ_DIR) $(COMMON_OBJS) $(LIBFT)
-# 	$(CC) $(CFLAGS) $(COMMON_OBJS) $(LDFLAGS) -o $(NAME)
+$(NAME): $(OBJ_DIR) $(COMMON_OBJS) $(LIBFT)
+	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_LIB) $(FRAMEWORKS) $(LDFLAGS) -o $(NAME)
 
 # $(NAME): $(COMMON_OBJS) $(MLX_OBJS)
 # 	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_OBJS) $(FRAMEWORKS) -o $(NAME)
