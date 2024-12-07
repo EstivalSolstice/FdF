@@ -6,261 +6,320 @@
 /*   By: joltmann <joltmann@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 16:58:56 by joltmann          #+#    #+#             */
-/*   Updated: 2024/12/07 02:26:40 by joltmann         ###   ########.fr       */
+/*   Updated: 2024/12/07 06:33:49 by joltmann         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "fdf.h"
 
-void apply_camera(t_point *point, t_fdf *fdf)
+void	apply_camera(t_point *point, t_camera *cam)
 {
-    point->x -= fdf->camera_x;
-    point->y -= fdf->camera_y;
-    point->z -= fdf->camera_z;
+	point->x -= cam->x;
+	point->y -= cam->y;
+	point->z -= cam->z;
 }
 
-void apply_rotation(t_point *point, t_fdf *fdf)
+void	apply_rotation(t_point *point, t_camera *cam)
 {
 	float	rad_x;
-    float	rad_y;
-    int		x;
+	float	rad_y;
+	int		x;
 	int		y;
-    int		z;
+	int		z;
 
-	rad_x = fdf->rotation_angle_x * (M_PI / 180.0);
-	rad_y = fdf->rotation_angle_y * (M_PI / 180.0);
+	rad_x = cam->rotation_x * (M_PI / 180.0);
+	rad_y = cam->rotation_y * (M_PI / 180.0);
 	x = point->x;
 	y = point->y;
 	z = point->z;
-    point->x = (int)(x * cos(rad_y) + z * sin(rad_y));
-    point->z = (int)(-x * sin(rad_y) + z * cos(rad_y));
-    point->y = (int)(y * cos(rad_x) - z * sin(rad_x));
-    point->z = (int)(y * sin(rad_x) + z * cos(rad_x));
+	point->x = (int)(x * cos(rad_y) + z * sin(rad_y));
+	point->z = (int)(-x * sin(rad_y) + z * cos(rad_y));
+	point->y = (int)(y * cos(rad_x) - z * sin(rad_x));
+	point->z = (int)(y * sin(rad_x) + z * cos(rad_x));
 }
 
-void isometric_projection(t_point *point)
+void	isometric_projection(t_point *point)
 {
-    float	iso;
-    int		x;
-    int		y;
+	float	iso;
+	int		x;
+	int		y;
 
 	iso = 30.0 * (M_PI / 180.0);
 	x = point->x;
 	y = point->y;
-    point->x = (int)((x - y) * cos(iso));
-    point->y = (int)((x + y) * sin(iso) - point->z);
+	point->x = (int)((x - y) * cos(iso));
+	point->y = (int)((x + y) * sin(iso) - point->z);
 }
 
-void transform_and_project(t_fdf *fdf, t_point *point)
+void	transform_and_project(t_fdf *fdf, t_point *point)
 {
-    apply_camera(point, fdf);
-    apply_rotation(point, fdf);
-    isometric_projection(point);
+	apply_camera(point, &fdf->cam);
+	apply_rotation(point, &fdf->cam);
+	isometric_projection(point);
 }
 
-
-void render_map(t_fdf *fdf)
+t_point	transform_point(t_fdf *fdf, t_point input)
 {
-	mlx_clear_window(fdf->mlx_ptr, fdf->win_ptr);
-    mlx_destroy_image(fdf->mlx_ptr, fdf->img_ptr);
+	t_point	result;
 
-    fdf->img_ptr = mlx_new_image(fdf->mlx_ptr, 1200, 800);
-    fdf->img_data = mlx_get_data_addr(fdf->img_ptr, &fdf->bits_per_pixel, &fdf->line_length, &fdf->endian);
-
-    for (int y = 0; y < fdf->map_height; y++)
-    {
-        for (int x = 0; x < fdf->row_widths[y]; x++)
-        {
-            t_point p1 = {x, y, fdf->z_values[y][x], fdf->colors[y][x]};
-            p1.z *= Z_SCALE;
-            p1.x *= fdf->scale;
-            p1.y *= fdf->scale;
-			apply_camera(&p1, fdf);
-            apply_rotation(&p1, fdf);
-            isometric_projection(&p1);
-            p1.x += OFFSET_X;
-            p1.y += OFFSET_Y;
-
-            if (x < fdf->row_widths[y] - 1)
-            {
-                t_point p2 = {x + 1, y, fdf->z_values[y][x + 1], fdf->colors[y][x + 1]};
-                p2.z *= Z_SCALE;
-                p2.x *= fdf->scale;
-                p2.y *= fdf->scale;
-                apply_camera(&p2, fdf);
-            	apply_rotation(&p2, fdf);
-            	isometric_projection(&p2);
-				p2.x += OFFSET_X;
-                p2.y += OFFSET_Y;
-                draw_line_dda(p1, p2, fdf);
-            }
-
-            if (y < fdf->map_height - 1 && x < fdf->row_widths[y + 1])
-            {
-                t_point p3 = {x, y + 1, fdf->z_values[y + 1][x], fdf->colors[y + 1][x]};
-                p3.z *= Z_SCALE;
-                p3.x *= fdf->scale;
-                p3.y *= fdf->scale;
-                apply_camera(&p3, fdf);
-            	apply_rotation(&p3, fdf);
-            	isometric_projection(&p3);
-				p3.x += OFFSET_X;
-                p3.y += OFFSET_Y;
-                draw_line_dda(p1, p3, fdf);
-            }
-        }
-    }
+	result.x = input.x * fdf->cam.scale;
+	result.y = input.y * fdf->cam.scale;
+	result.z = input.z * Z_SCALE;
+	result.color = input.color;
+	transform_and_project(fdf, &result);
+	result.x += OFFSET_X;
+	result.y += OFFSET_Y;
+	return (result);
 }
 
-
-int key_hook(int keycode, t_fdf *fdf)
+void	draw_horizontal_line(t_fdf *fdf, t_point p1, int x, int y)
 {
-    if (keycode == 53) // ESC key
-    {
-        free_fdf(fdf);
-        exit(0);
-    }
-	
+	t_map_data	*map;
+	t_point		p2;
 
-    else if (keycode == 123) // Left arrow
-        fdf->rotation_angle_y -= 5.0;
-    else if (keycode == 124) // Right arrow
-        fdf->rotation_angle_y += 5.0;
-	else if (keycode == 126) // Up arrow
-        fdf->rotation_angle_x -= 5.0;
-    else if (keycode == 125) // Down arrow
-        fdf->rotation_angle_x += 5.0;
-
-
-    else if (keycode == 0) // A key
-        fdf->camera_x += 10;
-    else if (keycode == 2) // D key
-        fdf->camera_x -= 10;
-    else if (keycode == 13) // W key
-        fdf->camera_y += 10;
-    else if (keycode == 1) // S key
-        fdf->camera_y -= 10;
-		
-		
-	else if (keycode == 34) // I key
-		fdf->camera_z -= 10;
-	else if (keycode == 38) // J key
+	map = &fdf->map;
+	if (x < map->row_widths[y] - 1)
 	{
-		fdf->camera_x += 10;
-		fdf->camera_y -= 10;
+		p2.x = x + 1;
+		p2.y = y;
+		p2.z = map->z_values[y][x + 1];
+		p2.color = map->colors[y][x + 1];
+		p2 = transform_point(fdf, p2);
+		draw_line_dda(p1, p2, fdf);
 	}
-	else if (keycode == 40) // K key
-		fdf->camera_z += 10;
-	else if (keycode == 37) // L key
-	{
-		fdf->camera_x -= 10;
-		fdf->camera_y += 10;
-	}	
-	
-	
-	else if (keycode == 18) // 1 key: Reset camera to top view
-	{
-    	fdf->camera_x = 0;
-    	fdf->camera_y = -500; // Move high above the scene
-    	fdf->camera_z = 500;  // Keep some distance for a better view
-	}
-	else if (keycode == 19) // 2 key: Side view
-	{
-    	fdf->camera_x = 500;  // Move to the side
-    	fdf->camera_y = 0;
-    	fdf->camera_z = 500;  // Keep distance
-	}
-	else if (keycode == 20) // 3 key: Front view
-	{
-    	fdf->camera_x = 0;
-    	fdf->camera_y = 0;
-    	fdf->camera_z = 1000; // Move far back for a full view
-	}
-	else if (keycode == 21) // 4 key: Reset rotation angles
-	{
-		fdf->rotation_angle_x = 0.0;
-		fdf->rotation_angle_y = 0.0;
-	}
-	
-	
-	else if (keycode == 24) // + key: Zoom in
-    	fdf->scale += 0.1;
-	else if (keycode == 27) // - key: Zoom out
-    	fdf->scale -= 0.1;
-
-
-	mlx_clear_window(fdf->mlx_ptr, fdf->win_ptr);
-    mlx_destroy_image(fdf->mlx_ptr, fdf->img_ptr);
-    fdf->img_ptr = mlx_new_image(fdf->mlx_ptr, 1200, 800);
-    fdf->img_data = mlx_get_data_addr(fdf->img_ptr, &fdf->bits_per_pixel, &fdf->line_length, &fdf->endian);
-    render_map(fdf);
-    mlx_put_image_to_window(fdf->mlx_ptr, fdf->win_ptr, fdf->img_ptr, 0, 0);
-    return (0);
 }
 
-void validate_input(t_fdf *fdf)
+void	draw_vertical_line(t_fdf *fdf, t_point p1, int x, int y)
 {
-    fdf->mlx_ptr = mlx_init();
-    if (!fdf->mlx_ptr)
-    {
-        ft_putstr_fd("Error: Failed to initialize MiniLibX.\n", 2);
-        exit(EXIT_FAILURE);
-    }
-    fdf->win_ptr = mlx_new_window(fdf->mlx_ptr, 1200, 800, "FdF");
-    if (!fdf->win_ptr)
-    {
-        ft_putstr_fd("Error: Failed to create a window.\n", 2);
-        exit(EXIT_FAILURE);
-    }
-    fdf->img_ptr = mlx_new_image(fdf->mlx_ptr, 1200, 800);
-    if (!fdf->img_ptr)
-    {
-        ft_putstr_fd("Error: Failed to create a new image.\n", 2);
-        mlx_destroy_window(fdf->mlx_ptr, fdf->win_ptr);
-        exit(EXIT_FAILURE);
-    }
-    fdf->img_data = mlx_get_data_addr(fdf->img_ptr, &fdf->bits_per_pixel, &fdf->line_length, &fdf->endian);
+	t_map_data	*map;
+	t_point		p3;
+
+	map = &fdf->map;
+	if (y < map->height - 1 && x < map->row_widths[y + 1])
+	{
+		p3.x = x;
+		p3.y = y + 1;
+		p3.z = map->z_values[y + 1][x];
+		p3.color = map->colors[y + 1][x];
+		p3 = transform_point(fdf, p3);
+		draw_line_dda(p1, p3, fdf);
+	}
+}
+
+void	process_row(t_fdf *fdf, t_map_data *map, int y)
+{
+	int		x;
+	t_point	p1;
+
+	x = 0;
+	while (x < map->row_widths[y])
+	{
+		p1.x = x;
+		p1.y = y;
+		p1.z = map->z_values[y][x];
+		p1.color = map->colors[y][x];
+		p1 = transform_point(fdf, p1);
+		draw_horizontal_line(fdf, p1, x, y);
+		draw_vertical_line(fdf, p1, x, y);
+		x++;
+	}
+}
+
+void	render_map(t_fdf *fdf)
+{
+	t_render_context	*render;
+	t_map_data			*map;
+	int					y;
+
+	render = &fdf->render;
+	map = &fdf->map;
+	mlx_clear_window(render->mlx_ptr, render->win_ptr);
+	if (render->img.ptr)
+		mlx_destroy_image(render->mlx_ptr, render->img.ptr);
+	render->img.ptr = mlx_new_image(render->mlx_ptr, 1200, 800);
+	render->img.data = mlx_get_data_addr(render->img.ptr,
+			&render->img.bits_per_pixel, &render->img.line_length,
+			&render->img.endian);
+	y = 0;
+	while (y < map->height)
+	{
+		process_row(fdf, map, y);
+		y++;
+	}
+}
+
+void	redraw(t_fdf *fdf)
+{
+	mlx_clear_window(fdf->render.mlx_ptr, fdf->render.win_ptr);
+	mlx_destroy_image(fdf->render.mlx_ptr, fdf->render.img.ptr);
+	fdf->render.img.ptr = mlx_new_image(fdf->render.mlx_ptr, 1200, 800);
+	fdf->render.img.data = mlx_get_data_addr(fdf->render.img.ptr,
+			&fdf->render.img.bits_per_pixel, &fdf->render.img.line_length,
+			&fdf->render.img.endian);
 	render_map(fdf);
-    mlx_put_image_to_window(fdf->mlx_ptr, fdf->win_ptr, fdf->img_ptr, 0, 0);
+	mlx_put_image_to_window(fdf->render.mlx_ptr, fdf->render.win_ptr,
+		fdf->render.img.ptr, 0, 0);
 }
 
-void put_pixel_to_image(t_fdf *fdf, int x, int y, int color)
+void	handle_camera_movement(int keycode, t_camera *cam)
 {
-    char *dst;
-
-    if (x >= 0 && x < 1200 && y >= 0 && y < 800)
-    {
-        dst = fdf->img_data + (y * fdf->line_length + x * (fdf->bits_per_pixel / 8));
-        *(unsigned int *)dst = (unsigned int)color;
-    }
+	if (keycode == 0)
+		cam->x += 10;
+	else if (keycode == 2)
+		cam->x -= 10;
+	else if (keycode == 13)
+		cam->y += 10;
+	else if (keycode == 1)
+		cam->y -= 10;
+	else if (keycode == 34)
+		cam->z -= 10;
+	else if (keycode == 40)
+		cam->z += 10;
+	else if (keycode == 38)
+	{
+		cam->x += 10;
+		cam->y -= 10;
+	}
+	else if (keycode == 37)
+	{
+		cam->x -= 10;
+		cam->y += 10;
+	}
 }
 
-void draw_line_dda(t_point p1, t_point p2, t_fdf *fdf)
+void	handle_camera_rotation(int keycode, t_camera *cam)
 {
-    t_dda	dda;
+	if (keycode == 123)
+		cam->rotation_y -= 5.0;
+	else if (keycode == 124)
+		cam->rotation_y += 5.0;
+	else if (keycode == 126)
+		cam->rotation_x -= 5.0;
+	else if (keycode == 125)
+		cam->rotation_x += 5.0;
+}
+
+void	handle_preset_views(int keycode, t_camera *cam)
+{
+	if (keycode == 18)
+	{
+		cam->x = 0;
+		cam->y = -500;
+		cam->z = 500;
+	}
+	else if (keycode == 19)
+	{
+		cam->x = 500;
+		cam->y = 0;
+		cam->z = 500;
+	}
+	else if (keycode == 20)
+	{
+		cam->x = 0;
+		cam->y = 0;
+		cam->z = 1000;
+	}
+	else if (keycode == 21)
+	{
+		cam->rotation_x = 0.0;
+		cam->rotation_y = 0.0;
+	}
+}
+
+void	handle_zoom(int keycode, t_camera *cam)
+{
+	if (keycode == 24)
+		cam->scale += 0.1;
+	else if (keycode == 27)
+		cam->scale -= 0.1;
+}
+
+int	key_hook(int keycode, t_fdf *fdf)
+{
+	t_camera	*cam;
+
+	cam = &fdf->cam;
+	if (keycode == 53)
+		close_window(fdf);
+	else
+	{
+		handle_camera_movement(keycode, cam);
+		handle_camera_rotation(keycode, cam);
+		handle_preset_views(keycode, cam);
+		handle_zoom(keycode, cam);
+	}
+	redraw(fdf);
+	return (0);
+}
+
+void	validate_input(t_fdf *fdf)
+{
+	fdf->render.mlx_ptr = mlx_init();
+	if (!fdf->render.mlx_ptr)
+	{
+		ft_putstr_fd("Error: Failed to initialize MiniLibX.\n", 2);
+		exit(EXIT_FAILURE);
+	}
+	fdf->render.win_ptr = mlx_new_window(fdf->render.mlx_ptr, 1200, 800, "FdF");
+	if (!fdf->render.win_ptr)
+	{
+		ft_putstr_fd("Error: Failed to create a window.\n", 2);
+		exit(EXIT_FAILURE);
+	}
+	fdf->render.img.ptr = mlx_new_image(fdf->render.mlx_ptr, 1200, 800);
+	if (!fdf->render.img.ptr)
+	{
+		ft_putstr_fd("Error: Failed to create a new image.\n", 2);
+		mlx_destroy_window(fdf->render.mlx_ptr, fdf->render.win_ptr);
+		exit(EXIT_FAILURE);
+	}
+	fdf->render.img.data = mlx_get_data_addr(fdf->render.img.ptr,
+			&fdf->render.img.bits_per_pixel, &fdf->render.img.line_length,
+			&fdf->render.img.endian);
+	render_map(fdf);
+	mlx_put_image_to_window(fdf->render.mlx_ptr, fdf->render.win_ptr,
+		fdf->render.img.ptr, 0, 0);
+}
+
+void	put_pixel_to_image(t_fdf *fdf, int x, int y, int color)
+{
+	char	*dst;
+
+	if (x >= 0 && x < 1200 && y >= 0 && y < 800)
+	{
+		dst = fdf->render.img.data + (y * fdf->render.img.line_length
+				+ x * (fdf->render.img.bits_per_pixel / 8));
+		*(unsigned int *)dst = (unsigned int)color;
+	}
+}
+
+void	draw_line_dda(t_point p1, t_point p2, t_fdf *fdf)
+{
+	t_dda	dda;
 	int		i;
 
 	dda.steps = (int)fmax(abs(p2.x - p1.x), abs(p2.y - p1.y));
-    dda.x = p1.x;
-    dda.y = p1.y;
+	dda.x = p1.x;
+	dda.y = p1.y;
 	dda.x_inc = (float)(p2.x - p1.x) / dda.steps;
-    dda.y_inc = (float)(p2.y - p1.y) / dda.steps;
-    dda.color = p1.color;
-    dda.color_inc = (float)(p2.color - p1.color) / dda.steps;
-    i = 0;
-    while (i <= dda.steps)
-    {
-        put_pixel_to_image(fdf, (int)roundf(dda.x), (int)roundf(dda.y), (int)dda.color);
-        dda.x += dda.x_inc;
-        dda.y += dda.y_inc;
-        dda.color += dda.color_inc;
-        i++;
-    }
+	dda.y_inc = (float)(p2.y - p1.y) / dda.steps;
+	dda.color = p1.color;
+	dda.color_inc = (float)(p2.color - p1.color) / dda.steps;
+	i = 0;
+	while (i <= dda.steps)
+	{
+		put_pixel_to_image(fdf, (int)roundf(dda.x), (int)roundf(dda.y),
+			(int)dda.color);
+		dda.x += dda.x_inc;
+		dda.y += dda.y_inc;
+		dda.color += dda.color_inc;
+		i++;
+	}
 }
 
-int close_window(t_fdf *fdf)
+int	close_window(t_fdf *fdf)
 {
-    mlx_destroy_window(fdf->mlx_ptr, fdf->win_ptr);
-    exit(0);
-    return (0);
+	mlx_destroy_window(fdf->render.mlx_ptr, fdf->render.win_ptr);
+	exit(0);
+	return (0);
 }
