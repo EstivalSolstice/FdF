@@ -39,7 +39,7 @@ MLX_INC := -I$(MLX_PATH)
 ###############                  SOURCE FILES                     ##############
 ################################################################################
 
-SRCS := main.c draw.c utils.c parse_map.c
+SRCS := main.c camera.c projection.c render.c input.c draw.c map.c parse_utils.c init.c presets.c
 
 # MLX_SRCS := $(wildcard minilbx_opengl_20191021/*.c)
 

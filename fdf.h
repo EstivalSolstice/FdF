@@ -6,7 +6,7 @@
 /*   By: joltmann <joltmann@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 16:53:59 by joltmann          #+#    #+#             */
-/*   Updated: 2024/12/07 06:12:28 by joltmann         ###   ########.fr       */
+/*   Updated: 2024/12/07 11:30:43 by joltmann         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 # include "minilbx_opengl_20191021/mlx.h"
 # include "libft/libft.h"
 
-# define Z_SCALE 2
+# define Z_SCALE 5
 # define OFFSET_X 600
 # define OFFSET_Y 400
 
@@ -76,6 +76,8 @@ typedef struct s_map_data
 	int		**z_values;
 	int		**colors;
 	int		*row_widths;
+	int		min_z;
+	int		max_z;
 }	t_map_data;
 
 typedef struct s_camera
@@ -111,25 +113,52 @@ typedef struct s_fdf
 	t_render_context	render;
 }	t_fdf;
 
+// camera.c
 void	apply_camera(t_point *point, t_camera *cam);
+void	apply_camera_preset(t_camera *cam, t_camera preset);
+void	handle_camera_movement(int keycode, t_camera *cam);
+void	handle_camera_rotation(int keycode, t_camera *cam);
+void	handle_zoom(int keycode, t_camera *cam);
+
+// projection.c
 void	apply_rotation(t_point *point, t_camera *cam);
 void	isometric_projection(t_point *point);
 void	transform_and_project(t_fdf *fdf, t_point *point);
+t_point	transform_point(t_fdf *fdf, t_point input);
+
+// render.c
 void	render_map(t_fdf *fdf);
-int		key_hook(int keycode, t_fdf *fdf);
+void	redraw(t_fdf *fdf);
+void	draw_horizontal_line(t_fdf *fdf, t_point p1, int x, int y);
+void	draw_vertical_line(t_fdf *fdf, t_point p1, int x, int y);
+void	process_row(t_fdf *fdf, t_map_data *map, int y);
+
+// draw.c
 void	put_pixel_to_image(t_fdf *fdf, int x, int y, int color);
-void	validate_input(t_fdf *fdf);
 void	draw_line_dda(t_point p1, t_point p2, t_fdf *fdf);
+
+// input.c
+int		key_hook(int keycode, t_fdf *fdf);
+void	validate_input(t_fdf *fdf);
 int		close_window(t_fdf *fdf);
-int		parse_hex(const char *str);
-int		parse_line(char *line, t_row_data *row_data, int width);
+
+// map.c
 int		parse_map_dimensions(const char *file_name, t_map_data *map);
 int		allocate_map_data(t_map_data *map);
 int		parse_row(char *line, int row, t_map_data *map);
+void	update_min_max_z(t_map_data *map, int row);
 int		parse_map(const char *file_name, t_map_data *map);
+
+// parse_utils.c
+int		ft_count_words(char *line, char delimiter);
+int		parse_hex(const char *str);
+int		parse_line(char *line, t_row_data *row_data, int width);
+
+// init.c
 t_fdf	*initialize_fdf(void);
 void	free_fdf(t_fdf *fdf);
 
-int		ft_count_words(char *line, char delimiter);
+// preset_views.c
+void	handle_preset_views(int keycode, t_camera *cam, t_map_data *map);
 
 #endif
