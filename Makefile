@@ -15,6 +15,7 @@ RM := rm -rf
 # SRC_DIRS := . 
 # BONUS_DIR := checker_bonus/_obj_bonus
 OBJ_DIR := _obj
+LIBFT_DIR := libft/_obj
 # BONUS_DIR := bonus/_obj_bonus
 INC_DIRS := . libft
 SRC_DIRS := .
@@ -31,7 +32,8 @@ vpath %.c $(SRC_DIRS)
 # endif
 
 # MiniLibX library path and file
-MLX_PATH := minilbx_opengl_20191021
+# MLX_PATH := minilbx_opengl_20191021
+MLX_PATH := minilibx_macos
 MLX_LIB := $(MLX_PATH)/libmlx.a
 MLX_INC := -I$(MLX_PATH)
 
@@ -95,8 +97,8 @@ all: $(LIBFT) $(NAME)
 
 FRAMEWORKS := -framework OpenGL -framework AppKit
 
-$(NAME): $(COMMON_OBJS)
-	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_LIB) $(FRAMEWORKS) -o $(NAME)
+# $(NAME): $(COMMON_OBJS)
+# 	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_LIB) $(FRAMEWORKS) -o $(NAME)
 
 $(NAME): $(OBJ_DIR) $(COMMON_OBJS) $(LIBFT)
 	$(CC) $(CFLAGS) $(COMMON_OBJS) $(MLX_LIB) $(FRAMEWORKS) $(LDFLAGS) -o $(NAME)
@@ -126,19 +128,10 @@ fclean: clean
 	$(RM) $(NAME) $(BONUS_NAME)
 	$(RM) libft/_obj libft/libft.a
 
-re: fclean submodule_update all
+re: fclean all
 
 $(LIBFT):
 	make -C libft
-
-submodule_update:
-	git submodule update --remote --merge
-
-re_submodule: submodule_rebuild
-
-submodule_rebuild:
-	git submodule deinit -f .
-	git submodule update --init --recursive
 
 help:
 	@echo "Makefile for $(NAME)"
@@ -148,13 +141,8 @@ help:
 	@echo "	make clean					Remove object files in the main project"
 	@echo "	make fclean					Remove all build files, including libft's objects"
 	@echo "	make re						Clean and rebuild the project"
-	@echo "	make submodule_update				Update all submodules to the latest commit"
-	@echo "	make re_submodule				Fully reset and update submodules"
-	@echo "	make submodule_rebuild				Reinitialize submodules from scratch"
 	@echo "	make help					Display this help message"
 
 -include $(OBJS:%.o=%.d)
-# -include $(BONUS_OBJS:%.o=%.d)
-# -include $(GNL_OBJS:%.o=%.d)
 
-.PHONY: all bonus clean fclean re submodule_update re_submodule submodule_rebuild help
+.PHONY: all bonus clean fclean re help

@@ -6,7 +6,7 @@
 /*   By: joltmann <joltmann@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 16:53:59 by joltmann          #+#    #+#             */
-/*   Updated: 2024/12/07 11:30:43 by joltmann         ###   ########.fr       */
+/*   Updated: 2025/03/05 15:01:11 by joltmann         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # include <stdlib.h>
 # include <fcntl.h>
 # include <math.h>
-# include "minilbx_opengl_20191021/mlx.h"
+# include "minilibx_macos/mlx.h"
 # include "libft/libft.h"
 
 # define Z_SCALE 5

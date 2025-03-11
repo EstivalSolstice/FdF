@@ -6,7 +6,7 @@
 /*   By: joltmann <joltmann@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/01 17:01:44 by joltmann          #+#    #+#             */
-/*   Updated: 2024/12/07 11:29:25 by joltmann         ###   ########.fr       */
+/*   Updated: 2025/01/25 23:37:31 by joltmann         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,6 @@ int	parse_line(char *line, t_row_data *row_data, int width)
 		i++;
 	}
 	if (i != width)
-		return (printf("Error: Invalid row width\n"), free(nums), 0);
+		return (ft_printf("Error: Invalid row width\n"), free(nums), 0);
 	return (free(nums), *(row_data->actual_width) = i, 1);
 }
